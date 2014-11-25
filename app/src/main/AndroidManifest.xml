@@ -3,6 +3,11 @@
     package="com.akqa.glass.recipie" >
 
     <uses-permission android:name="com.google.android.glass.permission.DEVELOPMENT" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -10,7 +15,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name="com.akqa.glass.recipie.MainActivity"
+            android:name=".RecipIE"
             android:icon="@drawable/ic_glass_logo"
             android:label="@string/title_activity_main" >
             <intent-filter>
@@ -19,7 +24,12 @@
 
             <meta-data
                 android:name="com.google.android.glass.VoiceTrigger"
-                android:resource="@xml/voice_trigger" />
+                android:resource="@xml/cook_something_with" />
+        </activity>
+        <activity
+            android:name="PreviewActivity"
+            android:label="Preview from camera"
+            android:enabled="true" >
         </activity>
     </application>
 
