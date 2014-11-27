@@ -1,113 +1,88 @@
-    package com.akqa.glass.recipie;
+package com.akqa.glass.recipie;
 
-    import android.util.Log;
+import android.util.Log;
 
-    //For if I'm using Unirest - don't it's not working...
-    //import com.mashape.unirest.http.HttpResponse;
-    //import com.mashape.unirest.http.JsonNode;
-    //import com.mashape.unirest.http.Unirest;
-    //import com.mashape.unirest.http.exceptions.UnirestException;
+import org.json.JSONObject;
 
-    import org.apache.http.HttpResponse;
-    import org.apache.http.client.HttpClient;
-    import org.apache.http.client.methods.HttpGet;
-    import org.apache.http.client.methods.HttpPost;
-    import org.apache.http.HttpEntity;
-    import org.json.JSONException;
-    import org.json.JSONObject;
+import java.io.File;
+import java.io.InputStream;
 
-    import java.io.BufferedReader;
-    import java.io.File;
-    import java.io.IOException;
-    import java.io.InputStream;
-    import java.io.InputStreamReader;
-    //Crazy HttpPost shit
-    import org.apache.http.entity.ContentType;
-    import org.apache.http.entity.mime.MultipartEntityBuilder;
+import retrofit.RestAdapter;
+import retrofit.http.Field;
+import retrofit.http.FormUrlEncoded;
+import retrofit.http.GET;
+import retrofit.http.Headers;
+import retrofit.http.POST;
+import retrofit.http.Path;
+import retrofit.mime.TypedFile;
 
-    import org.apache.http.impl.client.*;
 
-    //import org.apache.http.HttpResponse;
-    //import org.shaded.apache.http.HttpHeaders;
 
-    public class JSONParser {
-        static InputStream is = null;
-        static JSONObject jObj = null;
-        static String json = "";
-        private static final String TAG = JSONParser.class.getSimpleName();
-        // constructor
-        public JSONParser() {
-        }
-        public JSONObject getCamFindJSON(String type, String input) {
-            Log.d("PARSER", "Inside Parser");
-            /*
-             *  Request processing from API
-             */
-            if(type == "request"){
-                //Let's make the post request parameters!!!
-                MultipartEntityBuilder multipartEntity = MultipartEntityBuilder.create();
-                File requestImage = new File(input);
-                //Request Fields
-                multipartEntity.addBinaryBody("image_request[image]", requestImage, ContentType.create("image/jpeg"), requestImage.getName());
-                multipartEntity.addTextBody("image_request[locale]", "en_US");
-                //Request time
-                HttpClient client = new DefaultHttpClient();
-                HttpPost post = new HttpPost("https://camfind.p.mashape.com/image_requests");
-                post.setHeader("X-Mashape-Key", "Fhn5jZi5ixmshwnJMy7CGyj5yDCnp15DTQZjsniuwpVHfYHvFJ");
-                HttpResponse response = null;
-                try {
-                    response = client.execute(post);
-                    HttpEntity httpEntity = response.getEntity();
-                    is = httpEntity.getContent();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            /*
-             *  Receive response from API
-             */
-            else if(type == "response"){
-                try {
-                    HttpClient client = new DefaultHttpClient();
-                    HttpGet get = new HttpGet("https://camfind.p.mashape.com/image_responses/" + input);
-                    get.setHeader("X-Mashape-Key", "Fhn5jZi5ixmshwnJMy7CGyj5yDCnp15DTQZjsniuwpVHfYHvFJ");
-                    HttpResponse responseGet = null;
-                    responseGet = client.execute(get);
-                    HttpEntity httpEntity = responseGet.getEntity();
-                    is = httpEntity.getContent();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            /*
-             *  Parse Response into readable JSON
-             */
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        is, "iso-8859-1"), 8);
-                StringBuilder sb = new StringBuilder();
-                String line = null;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line + "n");
-                    Log.d("Raw Data", line);
-                }
-                is.close();
-                json = sb.toString();
-            } catch (Exception e) {
-                Log.e("Buffer Error", "Error converting result " + e.toString());
-            }
-            // try parse the string to a JSON object
-            try {
-                jObj = new JSONObject(json);
-            } catch (JSONException e) {
-                Log.e("JSON Parser", "Error parsing data " + e.toString());
-                e.printStackTrace();
-            } catch (Exception e) {
-                Log.e("JSON Parse", "Unknown Error");
-                e.printStackTrace();
-            }
-            // return JSON String
-            return jObj;
-        }
+public class JSONParser {
+    private static final String API_URL = "https://camfind.p.mashape.com";
+    static InputStream is = null;
+    static JSONObject jObj = null;
+    static String json = "";
+    private static final String TAG = JSONParser.class.getSimpleName();
+    //Request parameters
+    static final String locale = "en_US";
+    static final String language = "en";
+    File img = null;
+    TypedFile photo = null;
+    //Request response
+    String token = null;
+    RequestData requestResponse = null;
+
+    //This object will hold the response from the CamFind api (so far it only works for the request)
+    class RequestData {
+        String token;
+        String status;
+        String name;
+        String reason;
     }
+
+    interface CamFindRequest{
+        @FormUrlEncoded
+        @Headers("X-Mashape-Key: Fhn5jZi5ixmshwnJMy7CGyj5yDCnp15DTQZjsniuwpVHfYHvFJ")
+        @POST("/image_requests/")
+//        RequestData data(@Field("image_request[image]") TypedFile pic, @Field("image_request[language") String language, @Field("image_request[locale]") String locale, Callback<RequestData> cb);
+        RequestData data(@Field("image_request[remote_image_url]") String pic, @Field("image_request[language") String language, @Field("image_request[locale]") String locale);
+    }
+
+    interface CamFindResponse{
+        @Headers("X-Mashape-Key: Fhn5jZi5ixmshwnJMy7CGyj5yDCnp15DTQZjsniuwpVHfYHvFJ")
+        @GET("/image_responses/{token}")
+        RequestData data(@Path("token") String uniqueToken);
+    }
+
+    // constructor
+    public JSONParser() {
+    }
+    public RequestData getCamFind(String type, String funcInput) {
+        Log.d(TAG, "Inside Parser");
+        RestAdapter restAdapter = new RestAdapter.Builder()
+                .setLogLevel(RestAdapter.LogLevel.FULL)
+                .setEndpoint(API_URL)
+                .build();
+        /*
+         *  Request processing from API
+         */
+        if(type == "request"){
+            CamFindRequest request = restAdapter.create(CamFindRequest.class);
+//            TypedFile typedFile = new TypedFile("image/jpeg", new File(input));
+//            RequestData requestResponse = request.data(typedFile,language, locale, requestResponse);
+            //This works, but using an already uploaded image. Need to upload my image first or something...
+            requestResponse = request.data("http://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg", language, locale);
+        }
+        /*
+         *  Receive response from API
+         */
+        else if(type == "response"){
+            //put retrofit code here...
+            CamFindResponse response = restAdapter.create(CamFindResponse.class);
+            requestResponse = response.data(funcInput);
+        }
+        return requestResponse;
+    }
+}
 

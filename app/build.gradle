@@ -38,4 +38,5 @@ dependencies {
     compile 'org.apache.httpcomponents:httpclient-android:4.3.3'
     compile 'org.apache.httpcomponents:httpmime:4.3.4'
 //    compile 'org.apache.httpcomponents:httpasyncclient:4.0.1'
+    compile 'com.squareup.retrofit:retrofit:1.8.0'
 }

@@ -2,44 +2,33 @@ package com.akqa.glass.recipie;
 
 
 //Glass Specific Hello World Imports
-import com.google.android.glass.media.Sounds;
-import com.google.android.glass.widget.CardBuilder;
-import com.google.android.glass.widget.CardScrollAdapter;
-import com.google.android.glass.widget.CardScrollView;
-//General Android Hello World Imports
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.FileObserver;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-//Photo Imports
-import android.content.Intent;
-import android.os.FileObserver;
-import android.provider.MediaStore;
+
+import com.akqa.glass.recipie.JSONParser.RequestData;
 import com.google.android.glass.content.Intents;
+import com.google.android.glass.media.Sounds;
+import com.google.android.glass.widget.CardBuilder;
+import com.google.android.glass.widget.CardScrollAdapter;
+import com.google.android.glass.widget.CardScrollView;
 import com.google.android.glass.widget.Slider;
-//HTTP Imports
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.json.JSONException;
+
 import org.json.JSONObject;
-//Java Imports
+
 import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 
 /**
  * An {@link Activity} showing a tuggable "Hello World!" card.
@@ -70,9 +59,12 @@ public class RecipIE extends Activity {
     private Slider mSlider;
     private Slider.Indeterminate mIndeterminate;
     private Handler getPicHandler;
-    private boolean requestJsonRequested = false;
-    private boolean requestJsonRetrieved = false;
-
+    private Handler getResponseHandler;
+    private boolean requestComplete = false;
+    private boolean responseComplete = false;
+    private RequestData token = null;
+    private RequestData object = null;
+    private CardBuilder thumbnail;
 
     @Override
     protected void onCreate(Bundle bundle) {
@@ -150,7 +142,7 @@ public class RecipIE extends Activity {
             processPictureWhenReady(picturePath);
             //Display thumbnail while CamFind is doing it's magic.
             Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
-            CardBuilder thumbnail = new CardBuilder(this, CardBuilder.Layout.CAPTION);
+            thumbnail = new CardBuilder(this, CardBuilder.Layout.CAPTION);
             thumbnail.setText("Processing");
             thumbnail.setFootnote("");
             thumbnail.setTimestamp("");
@@ -182,13 +174,22 @@ public class RecipIE extends Activity {
         final File pictureFile = new File(picturePath);
         //It gets in here, but the picture doesn't exist yet..
         if (pictureFile.exists()) {
-//            Log.d(TAG, "Picture Exists");
             // The picture is ready; process it.
-            // TODO: CamFind stuff goes here.
-            new CamFindRequest().execute();
-
-
-
+//            try{
+//                object = jParser.getCamFind("request", thumbnailPath);
+//                Log.d(TAG, "Retrieved Request Object");
+//            } catch (Exception e) {
+//                Log.d(TAG, "Couldn't Retrieve Request Object");
+//                e.printStackTrace();
+//            }
+//            try{
+//                Log.d(TAG, "First request pass, moving to result.");
+//                object = jParser.getCamFind("response", object.token);
+//            } catch (Exception e) {
+//                Log.d(TAG, "Couldn't Retrieve Response Object");
+//                e.printStackTrace();
+//            }
+            new CamFindRequest().execute(thumbnailPath);
         } else {
 //            Log.d(TAG, "Picture doesn't exist");
             // The file does not exist yet. Before starting the file observer, you
@@ -272,88 +273,57 @@ public class RecipIE extends Activity {
         });
         setContentView(mCardScroller);
     }
-    public class CamFindRequest extends AsyncTask<String, String, JSONObject> {
-        @Override
-        protected void onPreExecute() {
-        //            Log.d(TAG, "Inside CamFind Request Code");
-        }
 
+    public class CamFindRequest extends AsyncTask<String, String, RequestData>{
         @Override
-        protected JSONObject doInBackground(String... strings) {
-            if(!requestJsonRetrieved){
-                try{
-                    //Commented out so I don't get charged a billion fucking dollars for calling the api
-                    //10,000 times. FFS program work right...
-                    //json = jParser.getCamFindJSON("request", picturePath);
-                    json = jParser.getCamFindJSON("request", thumbnailPath);
-//                    json = new JSONObject();//this is because the above line is commented out, remove it later.
-                    requestJsonRetrieved = true;
-                    Log.d(TAG, "Retrieved Request JSON");
-                } catch (Exception e) {
-                    Log.d(TAG, "Could not Retrieve JSON");
-                    e.printStackTrace();
-                }
+        protected RequestData doInBackground(String... imgUrl) {
+            if(!requestComplete){
+                token = jParser.getCamFind("request", thumbnailPath);
+                requestComplete = true;
+                Log.d(TAG, "Request Complete, token is: " + token.token);
             }
-            else{
-                json = null;
-            }
-            return json;
+            return token;
         }
-
         @Override
-        protected void onPostExecute(JSONObject json){
-            if(json != null){
-                try {
-                    //Start the response
-                    String token = json.getString("token");
-                    if(token != null){
-                        Log.d(TAG, "First request pass, moving to result.");
-                        new CamFindResponse().execute(token);
-                    }
-                } catch (JSONException e) {
-                    Log.d(TAG, "No token in JSON");
-                }
-            }
+        protected void onPostExecute(RequestData data){
+            new CamFindResponse().execute(token.token);
         }
     }
 
-    //Called by the request when it completes.
-    public class CamFindResponse extends AsyncTask<String, String, JSONObject> {
-        @Override
-        protected void onPreExecute() {
-        }
+    public class CamFindResponse extends AsyncTask<String, String, RequestData>{
 
         @Override
-        protected JSONObject doInBackground(String... strings) {
-            try{
-                //Commented out for now to prevent me from getting charged a fuckton of money...
-//                json = jParser.getCamFindJSON("response", strings[0]);
-                Log.d(TAG, "Retrieved Response JSON");
-            } catch (Exception e) {
-                Log.d(TAG, "Could not Retrieve JSON");
-                e.printStackTrace();
+        protected RequestData doInBackground(String... data) {
+            if(object == null || object.name == null){
+                object = jParser.getCamFind("response", data[0]);
+                if(object.name != null){
+                    requestComplete = true;
+                    Log.d(TAG, "Response Complete, your object is: " + object.name);
+                }
+                else{
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-            return json;
+            return object;
         }
+        @Override
+        protected void onPostExecute(RequestData data){
 
-//        @Override
-//        protected void onPostExecute(JSONObject json){
-//            String status = null;
-//            if(json != null){
-//                try {
-//                    status = json.getString("status");
-//                    if(status.equals("completed")){
-//                        String result = json.getString("result");
-//                        Log.d(TAG, "CamFind result is: " + result);
-//                    }
-//                } catch (JSONException e) {
-//                    Log.d(TAG, "String not found");
-//                    e.printStackTrace();
-//                }
-//            }
-//            else{Log.d(TAG, "JSON is null");}
-//
-//        }
+            if(requestComplete && !responseComplete) {
+                Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
+                thumbnail.setText(data.name);
+                thumbnail.setFootnote("");
+                thumbnail.setTimestamp("");
+                thumbnail.addImage(thumbImage);
+                //Start Scroller
+                setView(thumbnail.getView());
+                responseComplete = true;
+            }
+        }
     }
 }
 
