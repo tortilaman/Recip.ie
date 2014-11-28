@@ -1,7 +1,5 @@
 package com.akqa.glass.recipie;
 
-
-//Glass Specific Hello World Imports
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -28,7 +26,13 @@ import com.google.android.glass.widget.Slider;
 
 import org.json.JSONObject;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 import java.io.File;
+import java.lang.annotation.Documented;
 
 /**
  * An {@link Activity} showing a tuggable "Hello World!" card.
@@ -51,6 +55,7 @@ public class RecipIE extends Activity {
 
     private static final int TAKE_PICTURE_REQUEST = 1;
     private static final String TAG = "Recip.ie";
+    private static final String URL_BASE = "http://www.ingredientpairings.com/?i=";
 
     String thumbnailPath;
     String picturePath;
@@ -65,6 +70,8 @@ public class RecipIE extends Activity {
     private RequestData token = null;
     private RequestData object = null;
     private CardBuilder thumbnail;
+    private CardBuilder result;
+    private String ingredientUrl = null;
 
     @Override
     protected void onCreate(Bundle bundle) {
@@ -314,15 +321,49 @@ public class RecipIE extends Activity {
         protected void onPostExecute(RequestData data){
 
             if(requestComplete && !responseComplete) {
-                Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
-                thumbnail.setText(data.name);
-                thumbnail.setFootnote("");
-                thumbnail.setTimestamp("");
-                thumbnail.addImage(thumbImage);
-                //Start Scroller
-                setView(thumbnail.getView());
+//                Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
+//                result = new CardBuilder(getApplicationContext(), CardBuilder.Layout.CAPTION);
+//                result.setText(data.name);
+//                result.setFootnote("");
+//                result.setTimestamp("");
+//                result.addImage(thumbImage);
+//                //Start Scroller
+//                setView(result.getView());
                 responseComplete = true;
+                new GetIngredients().execute(object.name);
             }
+        }
+    }
+
+    public class GetIngredients extends AsyncTask<String, Void, String>{
+        @Override
+        protected String doInBackground(String... strings) {
+            StringBuffer buffer = new StringBuffer();
+            try {
+                ingredientUrl = object.name.replaceAll(" ", "+");
+                Log.d(TAG, ingredientUrl);
+//                strings[0].replaceAll(" ", "+");
+                Log.d(TAG, "Finding matches for " + object.name);
+                Document doc  = Jsoup.connect(URL_BASE + ingredientUrl).get();
+                Log.d(TAG, "Matches found for " + object.name);
+
+                Elements ingredients = doc.select("div.main  p b");
+                Log.d(TAG, "Ingredients are: " + ingredients.toString());
+                for (Element ingredient : ingredients) {
+                    String data = ingredient.text();
+                    buffer.append("Data [" + data + "] \r\n");
+                    Log.d(TAG, "Ingredient is: " + data);
+                }
+            }
+            catch(Throwable t) {
+                t.printStackTrace();
+            }
+            return buffer.toString();
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
         }
     }
 }
