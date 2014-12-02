@@ -31,6 +31,16 @@
             android:label="Preview from camera"
             android:enabled="true" >
         </activity>
+        <activity
+            android:name="PairingsActivity"
+            android:label="View a list of ingredient pairings"
+            android:enabled="true" >
+        </activity>
+        <activity
+            android:name="RecipesActivity"
+            android:label="View a list of recipes including your seed ingredient"
+            android:enabled="true" >
+        </activity>
     </application>
 
 </manifest>

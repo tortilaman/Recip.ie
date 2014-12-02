@@ -16,9 +16,10 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 
-import com.akqa.glass.recipie.JSONParser.RequestData;
+import com.akqa.glass.recipie.CamFindParser.RequestData;
 import com.google.android.glass.content.Intents;
 import com.google.android.glass.media.Sounds;
+import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.widget.CardBuilder;
 import com.google.android.glass.widget.CardScrollAdapter;
 import com.google.android.glass.widget.CardScrollView;
@@ -26,13 +27,9 @@ import com.google.android.glass.widget.Slider;
 
 import org.json.JSONObject;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
 import java.io.File;
-import java.lang.annotation.Documented;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An {@link Activity} showing a tuggable "Hello World!" card.
@@ -44,13 +41,15 @@ import java.lang.annotation.Documented;
  *
  * @see <a href="https://developers.google.com/glass/develop/gdk/touch">GDK Developer Guide</a>
  */
-public class RecipIE extends Activity {
+//public class RecipIE extends Activity implements GestureDetector.BaseListener {
+public class RecipIE extends Activity{
 
     /**
      * {@link CardScrollView} to use as the main content view.
      * This is what contains the views, but the actual views are adapters
      */
     private CardScrollView mCardScroller;
+    private CardScrollView mOptionScroller;
     private View mView;
 
     private static final int TAKE_PICTURE_REQUEST = 1;
@@ -59,8 +58,7 @@ public class RecipIE extends Activity {
 
     String thumbnailPath;
     String picturePath;
-    JSONObject json = null;
-    JSONParser jParser = new JSONParser();
+    CamFindParser jParser = new CamFindParser();
     private Slider mSlider;
     private Slider.Indeterminate mIndeterminate;
     private Handler getPicHandler;
@@ -68,18 +66,20 @@ public class RecipIE extends Activity {
     private boolean requestComplete = false;
     private boolean responseComplete = false;
     private RequestData token = null;
-    private RequestData object = null;
     private CardBuilder thumbnail;
     private CardBuilder result;
-    private String ingredientUrl = null;
+    private CardAdapter mAdapter;
+    private CamFindParser.RequestData object = null;
+
+    // Index of cards.
+    static final int INGREDIENTS = 0;
+    static final int RECIPES = 1;
 
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         //Keep screen on while this is happening.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        mView = buildView();
         mCardScroller = new CardScrollView(this);
         takePicture();  //Hopefully this takes a picture...
 
@@ -92,34 +92,25 @@ public class RecipIE extends Activity {
                 am.playSoundEffect(Sounds.DISALLOWED);
             }
         });
-        //setContentView(mCardScroller);
-        //mSlider = Slider.from(mCardScroller);
 
-        //Try the new camera preview functionality?
-//        Intent TakePhoto = new Intent(this, PreviewActivity.class);
-//        startActivity(TakePhoto);
+//        mGestureDetector = createGestureDetector(this);
+
+        // Initialize the gesture detector and set the activity to listen to discrete gestures.
+//        mGestureDetector = new GestureDetector(this).setBaseListener(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         mCardScroller.activate();
+//        mOptionScroller.activate();
     }
 
     @Override
     protected void onPause() {
-        mCardScroller.deactivate();
         super.onPause();
-    }
-
-    /**
-     * Builds a Glass styled "Hello World!" view using the {@link CardBuilder} class.
-     */
-    private View buildView() {
-        CardBuilder card = new CardBuilder(this, CardBuilder.Layout.TEXT);
-
-        card.setText(R.string.hello_world);
-        return card.getView();
+        mCardScroller.deactivate();
+//        mOptionScroller.deactivate();
     }
 
     /*
@@ -145,8 +136,6 @@ public class RecipIE extends Activity {
             thumbnailPath = data.getStringExtra(Intents.EXTRA_THUMBNAIL_FILE_PATH);
             picturePath = data.getStringExtra(Intents.EXTRA_PICTURE_FILE_PATH);
             Log.d("Image Debug", "Thumbnail path is: " + thumbnailPath);
-
-            processPictureWhenReady(picturePath);
             //Display thumbnail while CamFind is doing it's magic.
             Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
             thumbnail = new CardBuilder(this, CardBuilder.Layout.CAPTION);
@@ -156,89 +145,15 @@ public class RecipIE extends Activity {
             thumbnail.addImage(thumbImage);
             //Start Scroller
             setView(thumbnail.getView());
+            new CamFindRequest().execute(thumbnailPath);
 //            mIndeterminate = mSlider.startIndeterminate();
 
             //Wow this is super hacky and I shouldn't have to run this twice to get this to work...
             //Fix this google!!!
-            getPicHandler = new Handler();
-            getPicHandler.postDelayed(getPicRunnable, 100);
+//            getPicHandler = new Handler();
+//            getPicHandler.postDelayed(getPicRunnable, 100);
         }
-
         super.onActivityResult(requestCode, resultCode, data);
-    }
-
-
-    //Creates second file observer so that it actually works.......
-    private Runnable getPicRunnable = new Runnable() {
-        @Override
-    public void run() {
-            processPictureWhenReady(picturePath);
-            getPicHandler.postDelayed(this, 100);
-        }
-    };
-
-    private void processPictureWhenReady(final String picturePath) {
-        final File pictureFile = new File(picturePath);
-        //It gets in here, but the picture doesn't exist yet..
-        if (pictureFile.exists()) {
-            // The picture is ready; process it.
-//            try{
-//                object = jParser.getCamFind("request", thumbnailPath);
-//                Log.d(TAG, "Retrieved Request Object");
-//            } catch (Exception e) {
-//                Log.d(TAG, "Couldn't Retrieve Request Object");
-//                e.printStackTrace();
-//            }
-//            try{
-//                Log.d(TAG, "First request pass, moving to result.");
-//                object = jParser.getCamFind("response", object.token);
-//            } catch (Exception e) {
-//                Log.d(TAG, "Couldn't Retrieve Response Object");
-//                e.printStackTrace();
-//            }
-            new CamFindRequest().execute(thumbnailPath);
-        } else {
-//            Log.d(TAG, "Picture doesn't exist");
-            // The file does not exist yet. Before starting the file observer, you
-            // can update your UI to let the user know that the application is
-            // waiting for the picture (for example, by displaying the thumbnail
-            // image and a progress indicator).
-
-            final File parentDirectory = pictureFile.getParentFile();
-            FileObserver observer = new FileObserver(parentDirectory.getPath(),
-                    FileObserver.CLOSE_WRITE | FileObserver.MOVED_TO) {
-                // Protect against additional pending events after CLOSE_WRITE
-                // or MOVED_TO is handled.
-                private boolean isFileWritten;
-
-                @Override
-                public void onEvent(int event, String path) {
-                    Log.d(TAG, "some file has been modified");
-                    if (!isFileWritten) {
-                        // For safety, make sure that the file that was created in
-                        // the directory is actually the one that we're expecting.
-                        File affectedFile = new File(parentDirectory, path);
-                        isFileWritten = affectedFile.equals(pictureFile);
-
-                        if (isFileWritten) {
-                            Log.d(TAG, "Picture is Saved");
-                            stopWatching();
-
-                            // Now that the file is ready, recursively call
-                            // processPictureWhenReady again (on the UI thread).
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    processPictureWhenReady(picturePath);
-                                }
-                            });
-                        }
-                    }
-                }
-            };
-//            Log.d(TAG, "Started watching for file to write");
-            observer.startWatching();
-        }
     }
 
     /*
@@ -278,8 +193,86 @@ public class RecipIE extends Activity {
                 return AdapterView.INVALID_POSITION;
             }
         });
+        mCardScroller.activate();
         setContentView(mCardScroller);
     }
+
+    /**
+     * Create list of API demo cards.
+     */
+    private List<CardBuilder> createCards(Context context) {
+        ArrayList<CardBuilder> cards = new ArrayList<CardBuilder>();
+        String formattedName= object.name.substring(0, 1).toUpperCase() + object.name.substring(1);
+        cards.add(INGREDIENTS, new CardBuilder(context, CardBuilder.Layout.TITLE)
+                .addImage(R.drawable.ingredients)
+                .setText(formattedName + " pairings"));
+        cards.add(RECIPES, new CardBuilder(context, CardBuilder.Layout.TITLE)
+                .addImage(R.drawable.recipes)
+                .setText("Recipes"));
+        return cards;
+    }
+
+    /*
+     *  Show ingredients and recipes Menu
+     */
+    private void handleApiResults(){
+        Log.d(TAG, "Handling Results");
+        mAdapter = new CardAdapter(createCards(this));
+        mOptionScroller = new CardScrollView(this);
+        mOptionScroller.setAdapter(mAdapter);
+        mOptionScroller.activate();
+        setContentView(mOptionScroller);
+        setCardScrollerListener();
+    }
+
+    /**
+     * Different type of activities can be shown, when tapped on a card.
+     */
+    private void setCardScrollerListener() {
+        mOptionScroller.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.d(TAG, "Clicked view at position " + position + ", row-id " + id);
+                int soundEffect = Sounds.TAP;
+                switch (position) {
+                    case INGREDIENTS:
+                        Log.d(TAG, "Value being passed to pairings is: " + object.name);
+                        Intent pairings = new Intent(RecipIE.this, PairingsActivity.class);
+                        pairings.putExtra("Object", object.name);
+                        startActivity(pairings);
+                        break;
+
+                    case RECIPES:
+                        Intent recipeActivity = new Intent(RecipIE.this, RecipesActivity.class);
+                        recipeActivity.putExtra("Object", object.name);
+                        startActivity(recipeActivity);
+                        break;
+
+                    default:
+                        soundEffect = Sounds.ERROR;
+                        Log.d(TAG, "Don't show anything");
+                }
+
+                // Play sound.
+                AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                am.playSoundEffect(soundEffect);
+            }
+        });
+    }
+
+    /*
+     *   88        88  888888888888  888888888888  88888888ba      88888888ba
+     *   88        88       88            88       88      "8b     88      "8b                                                                ,d
+     *   88        88       88            88       88      ,8P     88      ,8P                                                                88
+     *   88aaaaaaaa88       88            88       88aaaaaa8P'     88aaaaaa8P'  ,adPPYba,   ,adPPYb,d8  88       88   ,adPPYba,  ,adPPYba,  MM88MMM  ,adPPYba,
+     *   88""""""""88       88            88       88""""""'       88""""88'   a8P_____88  a8"    `Y88  88       88  a8P_____88  I8[    ""    88     I8[    ""
+     *   88        88       88            88       88              88    `8b   8PP"""""""  8b       88  88       88  8PP"""""""   `"Y8ba,     88      `"Y8ba,
+     *   88        88       88            88       88              88     `8b  "8b,   ,aa  "8a    ,d88  "8a,   ,a88  "8b,   ,aa  aa    ]8I    88,    aa    ]8I
+     *   88        88       88            88       88              88      `8b  `"Ybbd8"'   `"YbbdP'88   `"YbbdP'Y8   `"Ybbd8"'  `"YbbdP"'    "Y888  `"YbbdP"'
+     *                                                                                              88
+     *                                                                                              88
+     */
 
     public class CamFindRequest extends AsyncTask<String, String, RequestData>{
         @Override
@@ -293,77 +286,46 @@ public class RecipIE extends Activity {
         }
         @Override
         protected void onPostExecute(RequestData data){
-            new CamFindResponse().execute(token.token);
+            try {
+                Thread.sleep(1000);
+                new CamFindResponse().execute(token.token);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public class CamFindResponse extends AsyncTask<String, String, RequestData>{
+        boolean responseHandled = false;
 
         @Override
         protected RequestData doInBackground(String... data) {
             if(object == null || object.name == null){
                 object = jParser.getCamFind("response", data[0]);
                 if(object.name != null){
-                    requestComplete = true;
+                    object.name.replace("fruit", "");
+                    responseComplete = true;
                     Log.d(TAG, "Response Complete, your object is: " + object.name);
-                }
-                else{
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
             return object;
         }
         @Override
         protected void onPostExecute(RequestData data){
-
-            if(requestComplete && !responseComplete) {
-//                Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
-//                result = new CardBuilder(getApplicationContext(), CardBuilder.Layout.CAPTION);
-//                result.setText(data.name);
-//                result.setFootnote("");
-//                result.setTimestamp("");
-//                result.addImage(thumbImage);
-//                //Start Scroller
-//                setView(result.getView());
-                responseComplete = true;
-                new GetIngredients().execute(object.name);
+            if(requestComplete && responseComplete && !responseHandled){
+                Log.d(TAG, "Handling results");
+                handleApiResults();
+                responseHandled = true;
             }
-        }
-    }
-
-    public class GetIngredients extends AsyncTask<String, Void, String>{
-        @Override
-        protected String doInBackground(String... strings) {
-            StringBuffer buffer = new StringBuffer();
-            try {
-                ingredientUrl = object.name.replaceAll(" ", "+");
-                Log.d(TAG, ingredientUrl);
-//                strings[0].replaceAll(" ", "+");
-                Log.d(TAG, "Finding matches for " + object.name);
-                Document doc  = Jsoup.connect(URL_BASE + ingredientUrl).get();
-                Log.d(TAG, "Matches found for " + object.name);
-
-                Elements ingredients = doc.select("div.main  p b");
-                Log.d(TAG, "Ingredients are: " + ingredients.toString());
-                for (Element ingredient : ingredients) {
-                    String data = ingredient.text();
-                    buffer.append("Data [" + data + "] \r\n");
-                    Log.d(TAG, "Ingredient is: " + data);
+            else if(!responseHandled){
+                try {
+                    Log.d(TAG, "Waiting for Response");
+                    Thread.sleep(500);
+                    new CamFindResponse().execute(token.token);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
-            catch(Throwable t) {
-                t.printStackTrace();
-            }
-            return buffer.toString();
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
         }
     }
 }
