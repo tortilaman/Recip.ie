@@ -7,7 +7,6 @@ import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.FileObserver;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -19,17 +18,15 @@ import android.widget.AdapterView;
 import com.akqa.glass.recipie.CamFindParser.RequestData;
 import com.google.android.glass.content.Intents;
 import com.google.android.glass.media.Sounds;
-import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.widget.CardBuilder;
 import com.google.android.glass.widget.CardScrollAdapter;
 import com.google.android.glass.widget.CardScrollView;
 import com.google.android.glass.widget.Slider;
 
-import org.json.JSONObject;
-
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * An {@link Activity} showing a tuggable "Hello World!" card.
@@ -70,6 +67,7 @@ public class RecipIE extends Activity{
     private CardBuilder result;
     private CardAdapter mAdapter;
     private CamFindParser.RequestData object = null;
+    private String cleanName = null;
 
     // Index of cards.
     static final int INGREDIENTS = 0;
@@ -139,19 +137,13 @@ public class RecipIE extends Activity{
             //Display thumbnail while CamFind is doing it's magic.
             Drawable thumbImage = Drawable.createFromPath(thumbnailPath);
             thumbnail = new CardBuilder(this, CardBuilder.Layout.CAPTION);
-            thumbnail.setText("Processing");
+            thumbnail.setText("Analyzing");
             thumbnail.setFootnote("");
             thumbnail.setTimestamp("");
             thumbnail.addImage(thumbImage);
             //Start Scroller
             setView(thumbnail.getView());
             new CamFindRequest().execute(thumbnailPath);
-//            mIndeterminate = mSlider.startIndeterminate();
-
-            //Wow this is super hacky and I shouldn't have to run this twice to get this to work...
-            //Fix this google!!!
-//            getPicHandler = new Handler();
-//            getPicHandler.postDelayed(getPicRunnable, 100);
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -194,6 +186,8 @@ public class RecipIE extends Activity{
             }
         });
         mCardScroller.activate();
+        mSlider = Slider.from(mCardScroller);
+        mIndeterminate = mSlider.startIndeterminate();
         setContentView(mCardScroller);
     }
 
@@ -202,7 +196,7 @@ public class RecipIE extends Activity{
      */
     private List<CardBuilder> createCards(Context context) {
         ArrayList<CardBuilder> cards = new ArrayList<CardBuilder>();
-        String formattedName= object.name.substring(0, 1).toUpperCase() + object.name.substring(1);
+        String formattedName= cleanName.substring(0, 1).toUpperCase() + cleanName.substring(1);
         cards.add(INGREDIENTS, new CardBuilder(context, CardBuilder.Layout.TITLE)
                 .addImage(R.drawable.ingredients)
                 .setText(formattedName + " pairings"));
@@ -237,15 +231,15 @@ public class RecipIE extends Activity{
                 int soundEffect = Sounds.TAP;
                 switch (position) {
                     case INGREDIENTS:
-                        Log.d(TAG, "Value being passed to pairings is: " + object.name);
+                        Log.d(TAG, "Value being passed to pairings is: " + cleanName);
                         Intent pairings = new Intent(RecipIE.this, PairingsActivity.class);
-                        pairings.putExtra("Object", object.name);
+                        pairings.putExtra("Object", cleanName);
                         startActivity(pairings);
                         break;
 
                     case RECIPES:
                         Intent recipeActivity = new Intent(RecipIE.this, RecipesActivity.class);
-                        recipeActivity.putExtra("Object", object.name);
+                        recipeActivity.putExtra("Object", cleanName);
                         startActivity(recipeActivity);
                         break;
 
@@ -295,6 +289,7 @@ public class RecipIE extends Activity{
         }
     }
 
+    //Object name cleanup is in here
     public class CamFindResponse extends AsyncTask<String, String, RequestData>{
         boolean responseHandled = false;
 
@@ -303,7 +298,10 @@ public class RecipIE extends Activity{
             if(object == null || object.name == null){
                 object = jParser.getCamFind("response", data[0]);
                 if(object.name != null){
-                    object.name.replace("fruit", "");
+                    //Clean up the camfind result
+                    Pattern stopWords = Pattern.compile("\\b(?:i|a|and|about|an|are|yellow|red|orange|blue|green|purple|violet|fruit)\\b\\s*", Pattern.CASE_INSENSITIVE);
+                    Matcher matcher = stopWords.matcher(object.name);
+                    cleanName = matcher.replaceAll("");
                     responseComplete = true;
                     Log.d(TAG, "Response Complete, your object is: " + object.name);
                 }
