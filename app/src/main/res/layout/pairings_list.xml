@@ -8,29 +8,26 @@
         android:layout_alignParentTop="true"
         android:layout_marginTop="5dp"
         android:layout_marginLeft="5dp"
-        android:text="Ingredient 1"/>
+        />
     <TextView
         android:id="@+id/ingredient2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
         android:layout_marginLeft="5dp"
-        android:layout_below="@+id/ingredient1"
-        android:text="Ingredient 2"/>
+        android:layout_below="@+id/ingredient1"/>
     <TextView
         android:id="@+id/ingredient3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
         android:layout_marginLeft="5dp"
-        android:layout_below="@+id/ingredient2"
-        android:text="Ingredient 3"/>
+        android:layout_below="@+id/ingredient2"/>
     <TextView
         android:id="@+id/ingredient4"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
         android:layout_marginLeft="5dp"
-        android:layout_below="@+id/ingredient3"
-        android:text="Ingredient 4"/>
+        android:layout_below="@+id/ingredient3"/>
 </RelativeLayout>

@@ -82,8 +82,6 @@ public class PairingsActivity extends Activity {
         });
         mCardScroller.activate();
         setContentView(mCardScroller);
-        mCardScroller.activate();
-        Log.d(TAG, "View has been set");
         //Recipes
         iList = new ArrayList<String>();
         context = this;
@@ -112,38 +110,34 @@ public class PairingsActivity extends Activity {
         /*
          *  Multiple ingredients per card attempt...
          */
-//        Log.i(TAG, "There are " + numCards + " cards");
-//        for(int i = 0; i < numCards; i++){
-//            cards.add(new CardBuilder(context, CardBuilder.Layout.EMBED_INSIDE)
-//                  .setEmbeddedLayout(R.layout.pairings_list));
-//            int data = i * ITEMS_PER_CARD;
-//            ArrayList<TextView> pairings = new ArrayList<TextView>();
-//            ArrayList<Integer> ids = new ArrayList<Integer>();
-//            ids.add(R.id.ingredient1);
-//            ids.add(R.id.ingredient2);
-//            ids.add(R.id.ingredient3);
-//            ids.add(R.id.ingredient4);
-//            for(int j = 0; j < ITEMS_PER_CARD; j++){
-//                if(data+j < iList.size()){
-//                    pairings.add((TextView) cards.get(i).getView().findViewById(ids.get(j)));
-//                    pairings.get(j).setText(iList.get(data + j));
-//                    Log.i("iList", iList.get(data+j));
-//                    cards.get(i).getRemoteViews().setTextViewText(ids.get(j),iList.get(data+j));
-////                    ((TextView) cards.get(i).getView().findViewById(ids.get(j))).setText(iList.get(data+j));
-//                    Log.i("Views", ((TextView) cards.get(i).getView().findViewById(ids.get(j))).getText().toString());
-//                    Log.i("ArrayList", iList.get(data+j));//The last logcat it's getting to
-//                }
-//            }
-//        }
+        Log.i(TAG, "There are " + numCards + " cards");
+        for(int i = 0; i < numCards; i++){
+            CardBuilder tempCard = new CardBuilder(context, CardBuilder.Layout.EMBED_INSIDE)
+                    .setEmbeddedLayout(R.layout.pairings_list);
+            //Adjusting card content
+            int data = i * ITEMS_PER_CARD;
+            ArrayList<Integer> ids = new ArrayList<Integer>();
+            ids.add(R.id.ingredient1);
+            ids.add(R.id.ingredient2);
+            ids.add(R.id.ingredient3);
+            ids.add(R.id.ingredient4);
+            for (int j = 0; j < ITEMS_PER_CARD; j++) {
+                if (data + j < iList.size()) {
+                    TextView tempText = (TextView) tempCard.getView().findViewById(ids.get(j));
+                    tempText.setText(iList.get(data+j));
+                }
+            }
+            cards.add(tempCard);
+        }
         /*
          *  One ingredient per card...
          */
-        for(int i = 0; i < iList.size(); i++){
-            cards.add(new CardBuilder(context, CardBuilder.Layout.TEXT)
-                .setText(iList.get(i)));
-            Log.d(TAG, "Ingredient is: " + iList.get(i));
-        }
-        Log.d(TAG, "Done adding pairings?");
+//        for(int i = 0; i < iList.size(); i++){
+//            cards.add(new CardBuilder(context, CardBuilder.Layout.TEXT)
+//                .setText(iList.get(i)));
+//            Log.d(TAG, "Ingredient is: " + iList.get(i));
+//        }
+//        Log.d(TAG, "Done adding pairings?");
         return cards;
     }
 
