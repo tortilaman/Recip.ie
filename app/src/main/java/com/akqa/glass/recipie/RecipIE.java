@@ -299,7 +299,7 @@ public class RecipIE extends Activity{
                 object = jParser.getCamFind("response", data[0]);
                 if(object.name != null){
                     //Clean up the camfind result
-                    Pattern stopWords = Pattern.compile("\\b(?:i|a|and|about|an|are|yellow|red|orange|blue|green|purple|violet|fruit|ripe|fresh)\\b\\s*", Pattern.CASE_INSENSITIVE);
+                    Pattern stopWords = Pattern.compile("\\b(?:i|a|and|about|of|an|are|yellow|red|blue|green|purple|violet|fruit|ripe|fresh|photo|printed|paper|image|vegetable|print)\\b\\s*", Pattern.CASE_INSENSITIVE);
                     Matcher matcher = stopWords.matcher(object.name);
                     cleanName = matcher.replaceAll("");
                     responseComplete = true;
