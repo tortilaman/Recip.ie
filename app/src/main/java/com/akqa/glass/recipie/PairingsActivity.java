@@ -110,33 +110,43 @@ public class PairingsActivity extends Activity {
         /*
          *  Multiple ingredients per card attempt...
          */
-        Log.i(TAG, "There are " + numCards + " cards");
-        for(int i = 0; i < numCards; i++){
-            CardBuilder tempCard = new CardBuilder(context, CardBuilder.Layout.EMBED_INSIDE)
-                    .setEmbeddedLayout(R.layout.pairings_list);
-            //Adjusting card content
-            int data = i * ITEMS_PER_CARD;
-            ArrayList<Integer> ids = new ArrayList<Integer>();
-            ids.add(R.id.ingredient1);
-            ids.add(R.id.ingredient2);
-            ids.add(R.id.ingredient3);
-            ids.add(R.id.ingredient4);
-            for (int j = 0; j < ITEMS_PER_CARD; j++) {
-                if (data + j < iList.size()) {
-                    TextView tempText = (TextView) tempCard.getView().findViewById(ids.get(j));
-                    tempText.setText(iList.get(data+j));
-                }
-            }
-            cards.add(tempCard);
-        }
+//        Log.i(TAG, "There are " + numCards + " cards");
+//        for(int i = 0; i < numCards; i++){
+//            CardBuilder tempCard = new CardBuilder(context, CardBuilder.Layout.EMBED_INSIDE)
+//                    .setEmbeddedLayout(R.layout.pairings_list);
+//            //Adjusting card content
+//            int data = i * ITEMS_PER_CARD;
+//            ArrayList<Integer> ids = new ArrayList<Integer>();
+//            ids.add(R.id.ingredient1);
+//            ids.add(R.id.ingredient2);
+//            ids.add(R.id.ingredient3);
+//            ids.add(R.id.ingredient4);
+//            for (int j = 0; j < ITEMS_PER_CARD; j++) {
+//                if (data + j < iList.size()) {
+//                    TextView tempText = (TextView) tempCard.getView().findViewById(ids.get(j));
+//                    tempText.setText(iList.get(data+j));
+//                }
+//            }
+//            cards.add(tempCard);
+//        }
         /*
          *  One ingredient per card...
          */
-//        for(int i = 0; i < iList.size(); i++){
-//            cards.add(new CardBuilder(context, CardBuilder.Layout.TEXT)
-//                .setText(iList.get(i)));
+
+        for(int i = 0; i < numCards; i++){
+            int data = i * ITEMS_PER_CARD;
+            String ingredients = "";
+            for(int j = 0; j < ITEMS_PER_CARD; j++){
+                if(data+j < iList.size()){
+                    ingredients += iList.get(data+j);
+                    ingredients += "\n";
+                }
+            }
+            Log.d(TAG, ingredients);
+            cards.add(new CardBuilder(context, CardBuilder.Layout.TEXT)
+                .setText(ingredients));
 //            Log.d(TAG, "Ingredient is: " + iList.get(i));
-//        }
+        }
 //        Log.d(TAG, "Done adding pairings?");
         return cards;
     }
@@ -194,5 +204,22 @@ public class PairingsActivity extends Activity {
         mIngredientScroller.setAdapter(mAdapter);
         mIngredientScroller.activate();
         setContentView(mIngredientScroller);
+//        for(int i=0; i < numCards; i++){
+//            CardBuilder tempCard = (CardBuilder) mAdapter.getItem(i);
+//            int data = i * ITEMS_PER_CARD;
+//            ArrayList<Integer> ids = new ArrayList<Integer>();
+//            ids.add(R.id.ingredient1);
+//            ids.add(R.id.ingredient2);
+//            ids.add(R.id.ingredient3);
+//            ids.add(R.id.ingredient4);
+//            for (int j = 0; j < ITEMS_PER_CARD; j++) {
+//                if (data + j < iList.size()) {
+//                    tempCard.getRemoteViews().setTextViewText(ids.get(j), iList.get(data+j));
+//                }
+//            }
+//        }
+//        mIngredientScroller.setAdapter(mAdapter);
+//        mIngredientScroller.activate();
+//        setContentView(mIngredientScroller);
     }
 }
