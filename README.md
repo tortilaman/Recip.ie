@@ -3,7 +3,7 @@
 I appologize if this isn't very clearly commented or the readme isn't very helpful, this is my first project on Github and I'm still learning
 
 ##What it is
-Recip.ie is a Google Glass application created to allow people to be more adventurous with their cooking. The idea is to provide users with ingreident pairings they wouldn't think of on their own to experiment with. For cooks who aren't as adventurous, it can provide recipes that include their seed ingredient.
+Recip.ie is a Google Glass application created in Android Studio that allows people to be more adventurous with their cooking. The idea is to provide users with ingreident pairings they wouldn't think of on their own to experiment with. For cooks who aren't as adventurous, it can provide recipes that include their seed ingredient.
 
 A good place to use this might be at the farmers market when you're trying to decide what to do with a new ingredeint you've just found.
 
