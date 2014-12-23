@@ -26,5 +26,6 @@ If I had some more time and access to a Glass, this is what I would want to do w
 - [ ] Use [Food Pairing API](https://www.foodpairing.com/en/home) instead of ingredientpairings.com html parsing
 - [ ] Change the recipe engine so that I get better results
 - [ ] Run some user tests
+- [ ] Add flow diagram to readme
 
 If you want to contribute, let me know.
